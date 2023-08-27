@@ -1,5 +1,16 @@
+import frames.GameFrame;
+
+import java.awt.*;
+
 public class Main {
     public static void main(String[] args) {
-        System.out.println("Hello world!");
+        // frame
+        EventQueue.invokeLater(new Runnable() {
+            @Override
+            public void run() {
+                GameFrame frame = new GameFrame("XO Game");
+            }
+        });
+
     }
 }
