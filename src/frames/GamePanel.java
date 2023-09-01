@@ -6,7 +6,6 @@ import javax.swing.*;
 import java.awt.*;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseListener;
-import java.util.Arrays;
 
 // The coordinates of the frame include the top bar, so in order to avoid confusion we need to create a panel.
 public class GamePanel extends JPanel implements MouseListener {
@@ -32,7 +31,7 @@ public class GamePanel extends JPanel implements MouseListener {
 
     private JLabel winnerLabel;
     private JLabel turnLabel;
-    private boolean clicked = true;
+    private boolean nextTurn = true;
 
     public GamePanel() {
         this.setPreferredSize(new Dimension(GameFrame.WIDTH, GameFrame.HEIGHT));
@@ -60,11 +59,12 @@ public class GamePanel extends JPanel implements MouseListener {
     @Override
     public void paintComponent(Graphics g) {
         // make sure to paint only after mouse was clicked
-        if (!clicked) {
+        if (!nextTurn) {
             return;
         }
+        System.out.println("Paint Start");
         super.paintComponent(g); // clear the screen
-        clicked = false;
+        nextTurn = false;
 
         Graphics2D g2d = (Graphics2D) g;
         g2d.setStroke(new BasicStroke(thick));
@@ -104,7 +104,16 @@ public class GamePanel extends JPanel implements MouseListener {
                 winnerLabel.setVisible(true);
                 turnLabel.setVisible(false);
             }
+            else if (!system.isEnd() && system.getCurrentTurn().equals(system.getBotSign())) {
+                // delay bot turn without interrupting other methods.
+                new Thread(() -> {
+                    system.botRun();
+                    nextTurn = true;
+                    repaint();
+                }).start();
+            }
         }
+        System.out.println("Paint End");
     }
 
     public void drawSign(int row, int col, Graphics2D g2d) {
@@ -233,17 +242,15 @@ public class GamePanel extends JPanel implements MouseListener {
 
     @Override
     public void mouseClicked(MouseEvent e) {
-        if (!system.isEnd()) {
+        if (!system.isEnd() && system.getCurrentTurn().equals(system.getPlayerSign())) {
             boolean valid = system.checkBox(e.getX(), e.getY()); // check whether the clicked box is available or not
             // System.out.println(String.valueOf(system.getCurrentInput()[0]) + ", " + String.valueOf(system.getCurrentInput()[1]));
-            clicked = true;
+            nextTurn = true;
             if (valid) {
-                if (system.getCurrentTurn().equals("X")) {
-                    system.setCurrentTurn("O");
-                }
-                else {
-                    system.setCurrentTurn("X");
-                }
+                system.setCurrentTurn(system.getBotSign());
+//                else {
+//                    system.setCurrentTurn("X");
+//                }
             }
 
             repaint();

@@ -1,13 +1,17 @@
 package game_controllers;
 
 import java.util.Arrays;
+import java.util.Random;
 
 import static frames.GamePanel.*;
 
 public class GameSystem {
     private boolean end = false;
     private final int[] currentInput = {0, 0};
-    private String currentTurn = "X";
+    private String currentTurn;
+
+    private String playerSign = "X";
+    private String botSign = "O";
 
     /*
            {
@@ -32,6 +36,13 @@ public class GameSystem {
             for (int col = 0; col < board[row].length; col++) {
                 board[row][col] = EMPTYSIGN;
             }
+        }
+        String[] signs = {"X", "O"};
+        currentTurn = signs[new Random().nextInt(signs.length)];
+        if (currentTurn.equals(botSign)) {
+            new Thread(() -> {
+                botRun();
+            }).start();
         }
     }
 
@@ -114,6 +125,29 @@ public class GameSystem {
         }
 
         end = false;
+    }
+
+    synchronized public void botRun() {
+        if (currentTurn.equals(botSign)) {
+            System.out.println("Bot start");
+            try {
+                Thread.sleep(750);
+                Random rand = new Random();
+                int botRow = rand.nextInt(board.length);
+                int botCol = rand.nextInt(board[0].length);
+                // make sure that the row and column is not selected.
+                while (!board[botRow][botCol].equals(EMPTYSIGN)) {
+                    botRow = rand.nextInt(board.length);
+                    botCol = rand.nextInt(board[0].length);
+                }
+                board[botRow][botCol] = botSign;
+
+                setCurrentTurn(playerSign);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+            System.out.println("Bot End");
+        }
     }
 
     public boolean isEnd() {
@@ -248,5 +282,13 @@ public class GameSystem {
 
     public int[][] getLineWinPos() {
         return this.lineWinPos;
+    }
+
+    public String getPlayerSign() {
+        return playerSign;
+    }
+
+    public String getBotSign() {
+        return botSign;
     }
 }
