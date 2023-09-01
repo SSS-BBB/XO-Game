@@ -40,17 +40,10 @@ public class GamePanel extends JPanel implements MouseListener {
         this.setLayout(null);
         system = new GameSystem();
 
-//        JLabel label = new JLabel("My name is Suphawit.");
-//        label.setBounds(0, 0, w, h);
-//        label.setFont(new Font("Arial", Font.PLAIN, 24));
-//        label.setHorizontalAlignment(JLabel.CENTER);
-//        label.setVerticalAlignment(JLabel.CENTER);
-//        add(label);
-
         winnerLabel = new JLabel();
         winnerLabel.setBounds(0, 0, w, h);
         winnerLabel.setFont(new Font("Arial", Font.PLAIN, 48));
-        winnerLabel.setForeground(Color.RED);
+        winnerLabel.setForeground(Color.BLUE);
         winnerLabel.setHorizontalAlignment(JLabel.CENTER);
         winnerLabel.setVerticalAlignment(JLabel.CENTER);
         winnerLabel.setVisible(false);
@@ -75,6 +68,7 @@ public class GamePanel extends JPanel implements MouseListener {
 
         Graphics2D g2d = (Graphics2D) g;
         g2d.setStroke(new BasicStroke(thick));
+        g2d.setColor(Color.BLACK);
 
 
         if (!system.isEnd()) {
@@ -100,6 +94,12 @@ public class GamePanel extends JPanel implements MouseListener {
             system.checkWin();
 
             if (system.isEnd()) {
+                // draw winning line
+                int[][] linePos = system.getLineWinPos();
+                g2d.setColor(Color.RED);
+                g2d.drawLine(linePos[0][0], linePos[0][1], linePos[1][0], linePos[1][1]);
+
+                // show winner text
                 winnerLabel.setText("The winner is " + system.getWinner());
                 winnerLabel.setVisible(true);
                 turnLabel.setVisible(false);
@@ -234,14 +234,16 @@ public class GamePanel extends JPanel implements MouseListener {
     @Override
     public void mouseClicked(MouseEvent e) {
         if (!system.isEnd()) {
-            system.checkBox(e.getX(), e.getY());
+            boolean valid = system.checkBox(e.getX(), e.getY()); // check whether the clicked box is available or not
             // System.out.println(String.valueOf(system.getCurrentInput()[0]) + ", " + String.valueOf(system.getCurrentInput()[1]));
             clicked = true;
-            if (system.getCurrentTurn() == "X") {
-                system.setCurrentTurn("O");
-            }
-            else {
-                system.setCurrentTurn("X");
+            if (valid) {
+                if (system.getCurrentTurn().equals("X")) {
+                    system.setCurrentTurn("O");
+                }
+                else {
+                    system.setCurrentTurn("X");
+                }
             }
 
             repaint();
