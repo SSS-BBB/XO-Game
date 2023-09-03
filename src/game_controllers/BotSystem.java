@@ -1,5 +1,6 @@
 package game_controllers;
 
+import java.util.ArrayList;
 import java.util.Random;
 
 public class BotSystem {
@@ -39,10 +40,10 @@ public class BotSystem {
                 pos[1] = 0;
             }
             // 2
-//            else if (turn == 1) {
-//                pos[0] = 2;
-//                pos[1] = 2;
-//            }
+            else if (turn == 1 && board[1][1].equals(game.getPlayerSign())) {
+                pos[0] = 0;
+                pos[1] = 2;
+            }
             // 3
             else {
                 int[] middle = winningSituation();
@@ -50,20 +51,33 @@ public class BotSystem {
                 if (middle != null) {
                     pos[0] = middle[0];
                     pos[1] = middle[1];
+                    selectedTurn[turn][0] = pos[0];
+                    selectedTurn[turn][1] = pos[1];
+                    turn++;
+                    return pos;
                 }
-                else {
-                    int[] randPos = new int[]{0, 2};
-                    for (int i = 0; i < randPos.length; i++) {
-                        for (int j = 0; j < randPos.length; j++) {
-                            pos[0] = randPos[i];
-                            pos[1] = randPos[j];
-                            if (validCorner(pos[0], pos[1])) {
-                                System.out.println(String.valueOf(pos[0]) + "," + String.valueOf(pos[1]));
-                                selectedTurn[turn][0] = pos[0];
-                                selectedTurn[turn][1] = pos[1];
-                                turn++;
-                                return pos;
-                            }
+                // block
+                int[] block = blockingOpponent();
+                if (block != null) {
+                    pos[0] = block[0];
+                    pos[1] = block[1];
+                    selectedTurn[turn][0] = pos[0];
+                    selectedTurn[turn][1] = pos[1];
+                    turn++;
+                    return pos;
+                }
+
+                int[] randPos = new int[]{0, 2};
+                for (int i = 0; i < randPos.length; i++) {
+                    for (int j = 0; j < randPos.length; j++) {
+                        pos[0] = randPos[i];
+                        pos[1] = randPos[j];
+                        if (validCorner(pos[0], pos[1])) {
+                            System.out.println(String.valueOf(pos[0]) + "," + String.valueOf(pos[1]));
+                            selectedTurn[turn][0] = pos[0];
+                            selectedTurn[turn][1] = pos[1];
+                            turn++;
+                            return pos;
                         }
                     }
                 }
@@ -72,8 +86,60 @@ public class BotSystem {
         selectedTurn[turn][0] = pos[0];
         selectedTurn[turn][1] = pos[1];
         turn++;
-
         return pos;
+    }
+
+    private int[] blockingOpponent() {
+        String[][] board = game.getBoard();
+
+        // DangerousPos1, DangerousPos2, PostoBlock
+        int[][][] dangerousPos = {
+                // horizontal
+                {{0, 0}, {0, 1}, {0, 2}},
+                {{0, 0}, {0, 2}, {0, 1}},
+                {{0, 1}, {0, 2}, {0, 0}},
+                {{1, 0}, {1, 1}, {1, 2}},
+                {{1, 0}, {1, 2}, {1, 1}},
+                {{1, 1}, {1, 2}, {1, 0}},
+                {{2, 0}, {2, 1}, {2, 2}},
+                {{2, 0}, {2, 2}, {2, 1}},
+                {{2, 1}, {2, 2}, {2, 0}},
+
+                // vertical
+                {{0, 0}, {1, 0}, {2, 0}},
+                {{0, 0}, {2, 0}, {1, 0}},
+                {{1, 0}, {2, 0}, {0, 0}},
+                {{0, 1}, {1, 1}, {2, 1}},
+                {{0, 1}, {2, 1}, {1, 1}},
+                {{1, 1}, {2, 1}, {0, 1}},
+                {{0, 2}, {1, 2}, {2, 2}},
+                {{0, 2}, {2, 2}, {1, 2}},
+                {{1, 2}, {2, 2}, {0, 2}},
+
+                // diagonal
+                // top right to bottom left
+                {{0, 2}, {1, 1}, {2, 0}},
+                {{0, 2}, {2, 0}, {1, 1}},
+                {{1, 1}, {2, 0}, {0, 2}},
+                // top left to bottom right
+                {{0, 0}, {1, 1}, {2, 2}},
+                {{0, 0}, {2, 2}, {1, 1}},
+                {{1, 1}, {2, 2}, {0, 0}},
+        };
+
+        for (int i = 0; i < dangerousPos.length; i++) {
+            int[] pos1 = dangerousPos[i][0];
+            int[] pos2 = dangerousPos[i][1];
+            int[] blockPos = dangerousPos[i][2];
+
+            if (board[pos1[0]][pos1[1]].equals(game.getPlayerSign()) &&
+                    board[pos2[0]][pos2[1]].equals(game.getPlayerSign()) &&
+                    board[blockPos[0]][blockPos[1]].equals(game.EMPTYSIGN)) {
+                return blockPos;
+            }
+        }
+
+        return null;
     }
 
     private int[] winningSituation() {
