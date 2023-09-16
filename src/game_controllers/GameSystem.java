@@ -1,6 +1,5 @@
 package game_controllers;
 
-import java.util.Arrays;
 import java.util.Random;
 
 import static frames.GamePanel.*;
@@ -26,11 +25,23 @@ public class GameSystem {
     private String winner = EMPTYSIGN;
     private int[][] lineWinPos = new int[2][2]; // ((x1, y1), (x2, y2))
     private String firstTurn;
-    private BotSystem bot;
+    private BotSystem[] bots;
+    private String result;
+
+    private String gameType;
+    public static String PVB = "Player Vs Bot";
+    public static String BVB = "Bot Vs Bot";
 
     public GameSystem() {
+        bots = new BotSystem[]{new BotSystem(this, "O", "X")};
+        if (bots.length == 1) {
+            gameType = PVB;
+        }
+        else if (bots.length > 1) {
+            gameType = BVB;
+        }
+
         resetBoard();
-        bot = new BotSystem(this);
     }
 
     public void resetBoard() {
@@ -40,17 +51,9 @@ public class GameSystem {
                 board[row][col] = EMPTYSIGN;
             }
         }
-        String[] signs = {"O"};
+        String[] signs = {"X", "O"};
         currentTurn = signs[new Random().nextInt(signs.length)];
-        if (currentTurn.equals(botSign)) {
-            firstTurn = botSign;
-            new Thread(() -> {
-                botRun();
-            }).start();
-        }
-        else {
-            firstTurn = playerSign;
-        }
+        firstTurn = currentTurn;
     }
 
     public boolean checkBox(int x, int y) {
@@ -93,6 +96,7 @@ public class GameSystem {
                     winner = board[row][0];
                     end = true;
                     setLineWinPos(row, 0, row, 2, "h");
+                    result = "The winner is " + winner;
                     return;
                 }
             }
@@ -105,6 +109,7 @@ public class GameSystem {
                     winner = board[0][col];
                     end = true;
                     setLineWinPos(0, col, 2, col, "v");
+                    result = "The winner is " + winner;
                     return;
                 }
             }
@@ -117,6 +122,7 @@ public class GameSystem {
                 winner = board[0][0];
                 end = true;
                 setDiagonalWinPos("tl");
+                result = "The winner is " + winner;
                 return;
             }
         }
@@ -127,8 +133,15 @@ public class GameSystem {
                 winner = board[0][2];
                 end = true;
                 setDiagonalWinPos("tr");
+                result = "The winner is " + winner;
                 return;
             }
+        }
+
+        if (countSignOnBoard() == 9) {
+            end = true;
+            result = "DRAW";
+            return;
         }
 
         end = false;
@@ -147,27 +160,31 @@ public class GameSystem {
     }
 
     synchronized public void botRun() {
-        if (currentTurn.equals(botSign)) {
-            System.out.println("Bot start");
-            try {
-                Thread.sleep(1000);
-                int[] botPos = bot.winOrDrawBot();
-                if (board[botPos[0]][botPos[1]].equals(EMPTYSIGN)) {
-                    board[botPos[0]][botPos[1]] = botSign;
+        for (BotSystem bot : bots) {
+            if (currentTurn.equals(bot.getMySign())) {
+                System.out.println("Bot start");
+                try {
+                    Thread.sleep(1000);
+                    int[] botPos = bot.winOrDrawBot();
+                    if (board[botPos[0]][botPos[1]].equals(EMPTYSIGN)) {
+                        board[botPos[0]][botPos[1]] = bot.getMySign();
 
+                    }
+                    else {
+                        System.out.println("Bot select invalid cell.");
+                        System.out.println(String.valueOf(botPos[0]) + "," + String.valueOf(botPos[1]));
+                        int[] botPosRand = bot.randomBot();
+                        board[botPosRand[0]][botPosRand[1]] = bot.getMySign();
+                    }
+                    setCurrentTurn(bot.getOpponentSign());
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
                 }
-                else {
-                    System.out.println("Bot select invalid cell.");
-                    System.out.println(String.valueOf(botPos[0]) + "," + String.valueOf(botPos[1]));
-                    int[] botPosRand = bot.randomBot();
-                    board[botPosRand[0]][botPosRand[1]] = botSign;
-                }
-                setCurrentTurn(playerSign);
-            } catch (InterruptedException e) {
-                e.printStackTrace();
+                System.out.println("Bot End");
+                return;
             }
-            System.out.println("Bot End");
         }
+
     }
 
     public boolean isEnd() {
@@ -314,5 +331,13 @@ public class GameSystem {
 
     public String getFirstTurn() {
         return firstTurn;
+    }
+
+    public String getGameType() {
+        return gameType;
+    }
+
+    public String getResult() {
+        return result;
     }
 }

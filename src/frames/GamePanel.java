@@ -7,6 +7,9 @@ import java.awt.*;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseListener;
 
+import static game_controllers.GameSystem.BVB;
+import static game_controllers.GameSystem.PVB;
+
 // The coordinates of the frame include the top bar, so in order to avoid confusion we need to create a panel.
 public class GamePanel extends JPanel implements MouseListener {
 
@@ -94,17 +97,27 @@ public class GamePanel extends JPanel implements MouseListener {
             system.checkWin();
 
             if (system.isEnd()) {
-                // draw winning line
-                int[][] linePos = system.getLineWinPos();
-                g2d.setColor(Color.RED);
-                g2d.drawLine(linePos[0][0], linePos[0][1], linePos[1][0], linePos[1][1]);
-
+                if (!system.getResult().equals("DRAW"))
+                {
+                    // draw winning line
+                    int[][] linePos = system.getLineWinPos();
+                    g2d.setColor(Color.RED);
+                    g2d.drawLine(linePos[0][0], linePos[0][1], linePos[1][0], linePos[1][1]);
+                }
                 // show winner text
-                winnerLabel.setText("The winner is " + system.getWinner());
+                winnerLabel.setText(system.getResult());
                 winnerLabel.setVisible(true);
                 turnLabel.setVisible(false);
             }
-            else if (!system.isEnd() && system.getCurrentTurn().equals(system.getBotSign())) {
+            else if (!system.isEnd() && system.getGameType().equals(PVB) && system.getCurrentTurn().equals(system.getBotSign())) {
+                // delay bot turn without interrupting other methods.
+                new Thread(() -> {
+                    system.botRun();
+                    nextTurn = true;
+                    repaint();
+                }).start();
+            }
+            else if (!system.isEnd() && system.getGameType().equals(BVB)) {
                 // delay bot turn without interrupting other methods.
                 new Thread(() -> {
                     system.botRun();
@@ -242,7 +255,7 @@ public class GamePanel extends JPanel implements MouseListener {
 
     @Override
     public void mouseClicked(MouseEvent e) {
-        if (!system.isEnd() && system.getCurrentTurn().equals(system.getPlayerSign())) {
+        if (!system.isEnd() && system.getCurrentTurn().equals(system.getPlayerSign()) && system.getGameType().equals(PVB)) {
             boolean valid = system.checkBox(e.getX(), e.getY()); // check whether the clicked box is available or not
             // System.out.println(String.valueOf(system.getCurrentInput()[0]) + ", " + String.valueOf(system.getCurrentInput()[1]));
             nextTurn = true;

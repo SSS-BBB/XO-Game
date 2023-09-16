@@ -1,6 +1,5 @@
 package game_controllers;
 
-import java.util.ArrayList;
 import java.util.Random;
 
 public class BotSystem {
@@ -9,8 +8,29 @@ public class BotSystem {
     int turn;
 
     GameSystem game;
-    public BotSystem(GameSystem game) {
+
+    public String getMySign() {
+        return mySign;
+    }
+
+    public void setMySign(String mySign) {
+        this.mySign = mySign;
+    }
+
+    public String getOpponentSign() {
+        return opponentSign;
+    }
+
+    public void setOpponentSign(String opponentSign) {
+        this.opponentSign = opponentSign;
+    }
+
+    private String mySign;
+    private String opponentSign;
+    public BotSystem(GameSystem game, String mySign, String opponentSign) {
         this.game = game;
+        this.mySign = mySign;
+        this.opponentSign = opponentSign;
         // row and column for each turn that is selected.
         selectedTurn = new int[5][2];
         turn = 0;
@@ -22,6 +42,7 @@ public class BotSystem {
             }
             System.out.println();
         }
+
         int[] pos = new int[2];
         String[][] board = game.getBoard();
         int prevRow = 0;
@@ -31,8 +52,29 @@ public class BotSystem {
             prevCol = selectedTurn[turn - 1][1];
         }
 
+        int[] middle = winOrBlock("win");
+        // win
+        if (middle != null) {
+            pos[0] = middle[0];
+            pos[1] = middle[1];
+            selectedTurn[turn][0] = pos[0];
+            selectedTurn[turn][1] = pos[1];
+            turn++;
+            return pos;
+        }
+        // block
+        int[] block = winOrBlock("block");
+        if (block != null) {
+            pos[0] = block[0];
+            pos[1] = block[1];
+            selectedTurn[turn][0] = pos[0];
+            selectedTurn[turn][1] = pos[1];
+            turn++;
+            return pos;
+        }
+
         // bot playing first
-        if (game.getFirstTurn().equals(game.getBotSign())) {
+        if (game.getFirstTurn().equals(mySign)) {
             // 1
             if (turn == 0) {
                 // play in the corner
@@ -40,57 +82,44 @@ public class BotSystem {
                 pos[1] = 0;
             }
             // 2
-            else if (turn == 1 && board[1][1].equals(game.getPlayerSign())) {
+            else if (turn == 1 && board[1][1].equals(opponentSign)) {
                 pos[0] = 0;
                 pos[1] = 2;
             }
-            // 3
-            else {
-                int[] middle = winningSituation();
-                // win
-                if (middle != null) {
-                    pos[0] = middle[0];
-                    pos[1] = middle[1];
+        }
+        // opponent playing first
+        else if (game.getFirstTurn().equals(opponentSign)) {
+            // 1
+            if (turn == 0) {
+                // middle board
+                if (board[1][1].equals(game.EMPTYSIGN)) {
+                    pos[0] = 1;
+                    pos[1] = 1;
                     selectedTurn[turn][0] = pos[0];
                     selectedTurn[turn][1] = pos[1];
                     turn++;
                     return pos;
-                }
-                // block
-                int[] block = blockingOpponent();
-                if (block != null) {
-                    pos[0] = block[0];
-                    pos[1] = block[1];
-                    selectedTurn[turn][0] = pos[0];
-                    selectedTurn[turn][1] = pos[1];
-                    turn++;
-                    return pos;
-                }
-
-                int[] randPos = new int[]{0, 2};
-                for (int i = 0; i < randPos.length; i++) {
-                    for (int j = 0; j < randPos.length; j++) {
-                        pos[0] = randPos[i];
-                        pos[1] = randPos[j];
-                        if (validCorner(pos[0], pos[1])) {
-                            System.out.println(String.valueOf(pos[0]) + "," + String.valueOf(pos[1]));
-                            selectedTurn[turn][0] = pos[0];
-                            selectedTurn[turn][1] = pos[1];
-                            turn++;
-                            return pos;
-                        }
-                    }
                 }
             }
         }
-        selectedTurn[turn][0] = pos[0];
-        selectedTurn[turn][1] = pos[1];
-        turn++;
+        int[] cornerPos = cornerPos();
+        if (cornerPos != null) {
+            pos[0] = cornerPos[0];
+            pos[1] = cornerPos[1];
+            selectedTurn[turn][0] = pos[0];
+            selectedTurn[turn][1] = pos[1];
+            turn++;
+            return pos;
+        }
         return pos;
     }
 
-    private int[] blockingOpponent() {
+    private int[] winOrBlock(String winOrBlock) {
         String[][] board = game.getBoard();
+        String signToLook = mySign;
+        if (winOrBlock.equals("block")) {
+            signToLook = opponentSign;
+        }
 
         // DangerousPos1, DangerousPos2, PostoBlock
         int[][][] dangerousPos = {
@@ -132,8 +161,8 @@ public class BotSystem {
             int[] pos2 = dangerousPos[i][1];
             int[] blockPos = dangerousPos[i][2];
 
-            if (board[pos1[0]][pos1[1]].equals(game.getPlayerSign()) &&
-                    board[pos2[0]][pos2[1]].equals(game.getPlayerSign()) &&
+            if (board[pos1[0]][pos1[1]].equals(signToLook) &&
+                    board[pos2[0]][pos2[1]].equals(signToLook) &&
                     board[blockPos[0]][blockPos[1]].equals(game.EMPTYSIGN)) {
                 return blockPos;
             }
@@ -142,25 +171,41 @@ public class BotSystem {
         return null;
     }
 
-    private int[] winningSituation() {
-        String[][] board = game.getBoard();
-        for (int i = 0; i < turn; i++) {
-            for (int j = i + 1; j <= turn; j++) {
-                int row1 = selectedTurn[i][0];
-                int col1 = selectedTurn[i][1];
-                int row2 = selectedTurn[j][0];
-                int col2 = selectedTurn[j][1];
-                int middleRow = (row1 + row2) / 2;
-                int middleCol = (col1 + col2) / 2;
-                if (board[middleRow][middleCol].equals(game.EMPTYSIGN) &&
-                        board[row1][col1].equals(game.getBotSign()) && board[row2][col2].equals(game.getBotSign())) {
-                    System.out.println("Win Bot");
-                    return new int[]{middleRow, middleCol};
+    private int[] cornerPos() {
+        int[] cornerPos = new int[]{0, 0};
+        int[] randPos = new int[]{0, 2};
+        for (int i = 0; i < randPos.length; i++) {
+            for (int j = 0; j < randPos.length; j++) {
+                cornerPos[0] = randPos[i];
+                cornerPos[1] = randPos[j];
+                if (validCorner(cornerPos[0], cornerPos[1])) {
+                    System.out.println(String.valueOf(cornerPos[0]) + "," + String.valueOf(cornerPos[1]));
+                    return  cornerPos;
                 }
             }
         }
         return null;
     }
+
+//    private int[] winningSituation() {
+//        String[][] board = game.getBoard();
+//        for (int i = 0; i < turn; i++) {
+//            for (int j = i + 1; j <= turn; j++) {
+//                int row1 = selectedTurn[i][0];
+//                int col1 = selectedTurn[i][1];
+//                int row2 = selectedTurn[j][0];
+//                int col2 = selectedTurn[j][1];
+//                int middleRow = (row1 + row2) / 2;
+//                int middleCol = (col1 + col2) / 2;
+//                if (board[middleRow][middleCol].equals(game.EMPTYSIGN) &&
+//                        board[row1][col1].equals(mySign) && board[row2][col2].equals(mySign)) {
+//                    System.out.println("Win Bot");
+//                    return new int[]{middleRow, middleCol};
+//                }
+//            }
+//        }
+//        return null;
+//    }
     private boolean validCorner(int row, int col) {
         String[][] board = game.getBoard();
 //        if (row == 2 && col == 2) {
@@ -181,11 +226,13 @@ public class BotSystem {
             }
         }
 
-        if ((selectedTurn[turn - 1][0] + 2 == row && selectedTurn[turn - 1][1] + 2 == col) ||
-                (selectedTurn[turn - 1][0] + 2 == row && selectedTurn[turn - 1][1] - 2 == col) ||
-                (selectedTurn[turn - 1][0] - 2 == row && selectedTurn[turn - 1][1] + 2 == col) ||
-                (selectedTurn[turn - 1][0] - 2 == row && selectedTurn[turn - 1][1] - 2 == col)) {
-            return false;
+        if (turn > 0) {
+            if ((selectedTurn[turn - 1][0] + 2 == row && selectedTurn[turn - 1][1] + 2 == col) ||
+                    (selectedTurn[turn - 1][0] + 2 == row && selectedTurn[turn - 1][1] - 2 == col) ||
+                    (selectedTurn[turn - 1][0] - 2 == row && selectedTurn[turn - 1][1] + 2 == col) ||
+                    (selectedTurn[turn - 1][0] - 2 == row && selectedTurn[turn - 1][1] - 2 == col)) {
+                return false;
+            }
         }
         return true;
     }
